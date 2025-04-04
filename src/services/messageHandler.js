@@ -145,31 +145,39 @@ class MessageHandler {
   async handleAppointmentFlow(to, message) {
     const state = this.appointmentState[to];
     let response;
-
-    switch (state.step) {
-      case 'name':
-        state.name = message;
-        state.step = 'petName';
-        response = "Gracias, Ahora, ¿Cuál es el nombre de tu Mascota?"
-        break;
-      case 'petName':
-        state.petName = message;
-        state.step = 'petType';
-        response = '¿Qué tipo de mascota es? (por ejemplo: perro, gato, huron, etc.)'
-        break;
-      case 'petType':
-        state.petType = message;
-        state.step = 'reason';
-        response = '¿Cuál es el motivo de la Consulta?';
-        break;
+  
+    try {
+      switch (state.step) {
+        case 'name':
+          state.name = message;
+          state.step = 'petName';
+          response = "Gracias, Ahora, ¿Cuál es el nombre de tu Mascota?";
+          break;
+  
+        case 'petName':
+          state.petName = message;
+          state.step = 'petType';
+          response = '¿Qué tipo de mascota es? (por ejemplo: perro, gato, huron, etc.)';
+          break;
+  
+        case 'petType':
+          state.petType = message;
+          state.step = 'reason';
+          response = '¿Cuál es el motivo de la Consulta?';
+          break;
+  
         case 'reason':
           state.reason = message;
-          response = await this.completeAppointment(to);
+          response = await this.completeAppointment(to); // ✅ Aquí era el error original
           break;
-        
+      }
+  
+      await whatsappService.sendMessage(to, response); // ✅ Asegurado dentro del mismo bloque
+    } catch (error) {
+      console.error('❌ Error en handleAppointmentFlow:', error);
+      await whatsappService.sendMessage(to, "Lo siento, ocurrió un error mientras registrábamos tu cita. Intenta de nuevo más tarde.");
     }
-    await whatsappService.sendMessage(to, response);
-  }
+  }  
 
   async handleAssistandFlow(to, message) {
     const state = this.assistandState[to];
