@@ -109,10 +109,10 @@ class MessageHandler {
     await whatsappService.sendMediaMessage(to, type, mediaUrl, caption);
   }
 
-  completeAppointment(to) {
+  async completeAppointment(to) {
     const appointment = this.appointmentState[to];
     delete this.appointmentState[to];
-
+  
     const userData = [
       to,
       appointment.name,
@@ -120,10 +120,15 @@ class MessageHandler {
       appointment.petType,
       appointment.reason,
       new Date().toISOString()
-    ]
-
-    appendToSheet(userData);
-
+    ];
+  
+    try {
+      await appendToSheet(userData);
+    } catch (error) {
+      console.error('❌ Error al guardar en Google Sheets:', error);
+      return `Tu cita fue registrada, pero hubo un problema guardando la información. Nos pondremos en contacto contigo para confirmar.`;
+    }
+  
     return `Gracias por agendar tu cita. 
     Resumen de tu cita:
     
@@ -132,8 +137,10 @@ class MessageHandler {
     Tipo de mascota: ${appointment.petType}
     Motivo: ${appointment.reason}
     
-    Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu cita.`
+    Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu cita.`;
   }
+  
+
 
   async handleAppointmentFlow(to, message) {
     const state = this.appointmentState[to];
