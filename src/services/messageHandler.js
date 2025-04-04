@@ -162,10 +162,11 @@ class MessageHandler {
         state.step = 'reason';
         response = '¿Cuál es el motivo de la Consulta?';
         break;
-      case 'reason':
-        state.reason = message;
-        response = this.completeAppointment(to);
-        break;
+        case 'reason':
+          state.reason = message;
+          response = await this.completeAppointment(to);
+          break;
+        
     }
     await whatsappService.sendMessage(to, response);
   }
