@@ -3,13 +3,19 @@ import messageHandler from '../services/messageHandler.js';
 
 class WebhookController {
   async handleIncoming(req, res) {
-    const message = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
-    const senderInfo = req.body.entry?.[0]?.changes[0]?.value?.contacts?.[0];
-
-    if (message) {
-      await messageHandler.handleIncomingMessage(message, senderInfo);
+    try {
+      const message = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
+      const senderInfo = req.body.entry?.[0]?.changes[0]?.value?.contacts?.[0];
+  
+      if (message) {
+        await messageHandler.handleIncomingMessage(message, senderInfo);
+      }
+  
+      res.sendStatus(200); // Aseguramos siempre responder
+    } catch (error) {
+      console.error('❌ Error en handleIncoming:', error);
+      res.sendStatus(500); // Respondemos aunque haya error
     }
-    res.sendStatus(200);
   }
 
   verifyWebhook(req, res) {
