@@ -1,7 +1,6 @@
 import axios from "axios";
 import config from '../../config/env.js';
 
-
 const sendToWhatsApp = async (data) => {
     const baseUrl = `${config.BASE_URL}/${config.API_VERSION}/${config.BUSINESS_PHONE}/messages`;
     const headers = {
@@ -20,3 +19,5 @@ const sendToWhatsApp = async (data) => {
         console.error(error)
     }
 };
+
+export default sendToWhatsApp;
