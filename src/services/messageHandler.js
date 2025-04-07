@@ -122,12 +122,9 @@ class MessageHandler {
       new Date().toISOString()
     ];
   
-    try {
-      await appendToSheet(userData);
-    } catch (error) {
-      console.error('❌ Error al guardar en Google Sheets:', error);
-      return `Tu cita fue registrada, pero hubo un problema guardando la información. Nos pondremos en contacto contigo para confirmar.`;
-    }
+    console.log("📋 Datos a guardar en Sheets:", userData); // 👈 Imprime antes de guardar
+  
+    await appendToSheet(userData); // 👈 Aquí se intenta guardar
   
     return `Gracias por agendar tu cita. 
     Resumen de tu cita:
@@ -138,7 +135,7 @@ class MessageHandler {
     Motivo: ${appointment.reason}
     
     Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu cita.`;
-  }
+  }  
   
 
 
@@ -177,7 +174,7 @@ class MessageHandler {
       console.error('❌ Error en handleAppointmentFlow:', error);
       await whatsappService.sendMessage(to, "Lo siento, ocurrió un error mientras registrábamos tu cita. Intenta de nuevo más tarde.");
     }
-  }  
+  }   
 
   async handleAssistandFlow(to, message) {
     const state = this.assistandState[to];
