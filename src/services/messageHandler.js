@@ -2,25 +2,24 @@ import whatsappService from './whatsappService.js';
 import openAiService from './openAiService.js';
 
 class MessageHandler {
-
   constructor() {
     this.appointmentState = {};
-    this.assistandState = {};
+    this.assistantState = {};
   }
 
   async handleIncomingMessage(message, senderInfo) {
     if (message?.type === 'text') {
       const incomingMessage = message.text.body.toLowerCase().trim();
 
-      if(this.isGreeting(incomingMessage)){
+      if (this.isGreeting(incomingMessage)) {
         await this.sendWelcomeMessage(message.from, message.id, senderInfo);
         await this.sendWelcomeMenu(message.from);
-      } else if(incomingMessage === 'media') {
+      } else if (incomingMessage === 'media') {
         await this.sendMedia(message.from);
       } else if (this.appointmentState[message.from]) {
         await this.handleAppointmentFlow(message.from, incomingMessage);
-      } else if (this.assistandState[message.from]) {
-        await this.handleAssistandFlow(message.from, incomingMessage);
+      } else if (this.assistantState[message.from]) {
+        await this.handleAssistantFlow(message.from, incomingMessage);
       } else {
         await this.handleMenuOption(message.from, incomingMessage);
       }
@@ -33,26 +32,40 @@ class MessageHandler {
   }
 
   isGreeting(message) {
-    const greetings = ["hola", "hello", "hi", "buenas tardes"];
-    return greetings.includes(message);
+    const greetings = [
+      "hola", "hello", "hi", "buenas", "buenos días", "buenas tardes", "buenas noches",
+      "buen día", "holi", "qué más", "saludos"
+    ];
+    return greetings.some(greet => message.includes(greet));
   }
 
-  getSenderName(senderInfo) {
-    return senderInfo.profile?.name || senderInfo.wa_id;
+  getFirstName(senderInfo) {
+    const fullName = senderInfo.profile?.name || senderInfo.wa_id;
+    return fullName.split(' ')[0];
   }
 
   async sendWelcomeMessage(to, messageId, senderInfo) {
-    const name = this.getSenderName(senderInfo);
-    const welcomeMessage = `Hola ${name}, Bienvenido a MEDPET, Tu tienda de mascotas en línea. ¿En qué puedo ayudarte hoy?`;
+    const firstName = this.getFirstName(senderInfo);
+    const welcomeMessage = `¡Hola ${firstName}! 💖 Bienvenida a *Nana's Beauty Bar Spa de Uñas* 💅✨\n\nEstoy aquí para ayudarte a consentirte como mereces. ¿Con qué te puedo colaborar hoy? 😊`;
     await whatsappService.sendMessage(to, welcomeMessage, messageId);
   }
 
   async sendWelcomeMenu(to) {
-    const menuMessage = "Elige una Opción";
+    const menuMessage = "Por favor, elige una opción:";
     const buttons = [
-      { type: 'reply', reply: { id: 'option_1', title: 'Agendar' }},
-      { type: 'reply', reply: { id: 'option_2', title: 'Consultar' }},
-      { type: 'reply', reply: { id: 'option_3', title: 'Ubicación' }}
+      { type: 'reply', reply: { id: 'option_1', title: 'Agendar cita' } },
+      { type: 'reply', reply: { id: 'option_2', title: 'Consultar' } },
+      { type: 'reply', reply: { id: 'option_3', title: 'Ubicación' } }
+    ];
+    await whatsappService.sendInteractiveButtons(to, menuMessage, buttons);
+  }
+
+  async sendConsultationMenu(to) {
+    const menuMessage = "¿Qué tipo de consulta deseas?";
+    const buttons = [
+      { type: 'reply', reply: { id: 'option_4', title: 'Recomendación' } },
+      { type: 'reply', reply: { id: 'option_5', title: 'Asesoría' } },
+      { type: 'reply', reply: { id: 'option_6', title: 'Servicios' } }
     ];
     await whatsappService.sendInteractiveButtons(to, menuMessage, buttons);
   }
@@ -62,57 +75,44 @@ class MessageHandler {
     switch (option) {
       case 'option_1':
         this.appointmentState[to] = { step: 'name' };
-        response = "Por favor, ingresa tu nombre:";
+        response = "Perfecto 💕 Empecemos tu agendamiento. ¿Cuál es tu nombre completo?";
         break;
       case 'option_2':
-        this.assistandState[to] = { step: 'question' };
-        response = "Realiza tu consulta";
-        break;
-      case 'option_3': 
-        response = 'Esta es nuestra Ubicación';
+        await this.sendConsultationMenu(to);
+        return;
+      case 'option_3':
+        response = 'Nuestra ubicación es la siguiente:';
         await this.sendLocation(to);
         break;
-      case 'option_6':
-        response = "Si esto es una emergencia, te invitamos a llamar a nuestra línea de atención.";
-        await this.sendContact(to);
+      case 'option_4':
+        this.assistantState[to] = { step: 'recommendation' };
+        response = "Cuéntame brevemente cómo están tus uñas actualmente (quebradizas, con hongos, débiles, cortas, etc.), para darte la mejor recomendación 💅✨.";
         break;
-      default: 
-        response = "Lo siento, no entendí tu selección. Por favor, elige una de las opciones del menú.";
+      case 'option_5':
+        this.assistantState[to] = { step: 'advice' };
+        response = "¿Te gustaría ideas sobre colores, diseños o tendencias actuales? 🎨✨ Cuéntame qué estás buscando.";
+        break;
+      case 'option_6':
+        this.assistantState[to] = { step: 'services' };
+        response = "Aquí tienes algunos de nuestros servicios destacados con precios:\n\n" +
+          "💅 *Esmaltado Tradicional*: $25.000 (manicure o pedicure) / $44.000 ambos.\n" +
+          "💅 *Semipermanente*: $45.000 color plano / $50.000 con decoración.\n" +
+          "🛡️ *Forrados*: Dipping y Rubber Base, ideales para uñas frágiles.\n" +
+          "🌟 *Polygel*: $90.000 | *Acrílico*: $100.000.\n" +
+          "✨ *Alargamiento Press On*: $115.000 (¡Nuestra especialidad!).\n" +
+          "🦶 *PEDILUXE*: Ritual completo para relajar y consentir tus pies 💆‍♀️\n\n" +
+          "Si quieres más detalles, ¡pregúntame sin pena! 💖";
+        break;
+      default:
+        response = "Lo siento 😅 no entendí tu selección. Por favor, elige una opción del menú.";
     }
     await whatsappService.sendMessage(to, response);
-  }
-
-  async sendMedia(to) {
-    const mediaUrl = 'https://s3.amazonaws.com/gndx.dev/medpet-file.pdf';
-    const caption = '¡Esto es un PDF!';
-    const type = 'document';
-    await whatsappService.sendMediaMessage(to, type, mediaUrl, caption);
-  }
-
-  completeAppointment(to) {
-    const appointment = this.appointmentState[to];
-    delete this.appointmentState[to];
-
-    const resumen = `
-✅ *Resumen de tu cita:*
-
-📱 Teléfono: ${to}
-👤 Nombre: ${appointment.name}
-🐾 Mascota: ${appointment.petName}
-🐶 Tipo: ${appointment.petType}
-📝 Motivo: ${appointment.reason}
-🕒 Fecha: ${new Date().toLocaleString('es-CO')}
-`;
-
-    return `Gracias por agendar tu cita. ${resumen} 
-
-Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu cita.`;
   }
 
   async handleAppointmentFlow(to, message) {
     const state = this.appointmentState[to];
     let response;
-
+  
     switch (state.step) {
       case 'name':
         state.name = message;
@@ -131,61 +131,62 @@ Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu ci
         break;
       case 'reason':
         state.reason = message;
+        state.step = 'professional';
+        response = "¿Con quién deseas agendar? Puedes escribir el nombre de la profesional o decir 'cualquiera'. También contamos con servicios de podología: $45.000 (podología sencilla) y $80.000 (uñas encarnadas). ¿Cuál prefieres?";
+        break;
+      case 'professional':
+        state.professional = message;
         response = this.completeAppointment(to);
         break;
     }
+  
     await whatsappService.sendMessage(to, response);
-  }
+  }  
 
-  async handleAssistandFlow(to, message) {
-    const state = this.assistandState[to];
-    let response;
+  completeAppointment(to) {
+    const appointment = this.appointmentState[to];
+    delete this.appointmentState[to];
+  
+    const resumen = `
+  ✅ *Resumen de tu cita:*
+  
+  📱 Teléfono: ${to}
+  👤 Nombre: ${appointment.name}
+  🐾 Mascota: ${appointment.petName}
+  🐶 Tipo: ${appointment.petType}
+  📝 Servicio: ${appointment.reason}
+  👩‍🦰 Profesional: ${appointment.professional}
+  🕒 Fecha: ${new Date().toLocaleString('es-CO')}
+  `;
+  
+    return `Gracias por agendar tu cita. ${resumen}
+  
+  Nos pondremos en contacto contigo pronto para confirmar la disponibilidad de la profesional y la hora de tu cita. ✨`;
+  }  
 
-    const menuMessage = "¿La respuesta fue de tu ayuda?";
-    const buttons = [
-      { type: 'reply', reply: { id: 'option_4', title: "Sí, gracias" }},
-      { type: 'reply', reply: { id: 'option_5', title: 'Hacer otra pregunta' }},
-      { type: 'reply', reply: { id: 'option_6', title: 'Emergencia' }}
-    ];
+  async handleAssistantFlow(to, message) {
+    const state = this.assistantState[to];
+    let prompt;
 
-    if (state.step === 'question') {
-      response = await openAiService(message);
+    if (state.step === 'recommendation') {
+      prompt = `Soy una experta en cuidado de uñas. Con base en el estado que menciona el cliente, recomienda solo una o dos técnicas adecuadas de nuestro spa para fortalecer o mejorar sus uñas. Mensaje del cliente: "${message}"`;
+    } else if (state.step === 'advice') {
+      prompt = `Soy asesora en tendencias de uñas. Recomienda colores o diseños actuales basados en la consulta del cliente: "${message}"`;
+    } else if (state.step === 'services') {
+      prompt = `Responde con información sobre los servicios del spa relacionados a: "${message}". Incluye precios si aplica.`;
     }
 
-    delete this.assistandState[to];
-    await whatsappService.sendMessage(to, response);
-    await whatsappService.sendInteractiveButtons(to, menuMessage, buttons);
-  }
+    const response = await openAiService(prompt);
+    delete this.assistantState[to];
 
-  async sendContact(to) {
-    const contact = {
-      addresses: [{
-        street: "Transversal 32sur N32 - 64",
-        city: "Envigado",
-        state: "Antioquia",
-        zip: "055422",
-        country: "Colombia",
-        country_code: "Co",
-        type: "WORK"
-      }],
-      emails: [{ email: "nanasbeautybar@gmail.com", type: "WORK" }],
-      name: {
-        formatted_name: "Nanas Contacto",
-        first_name: "Nanas",
-        last_name: "Beauty Bar",
-        middle_name: "",
-        suffix: "",
-        prefix: ""
-      },
-      org: {
-        company: "Nanas Beauty Bar",
-        department: "Atención al Cliente",
-        title: "Representante"
-      },
-      phones: [{ phone: "+573042730056", wa_id: "573042730056", type: "WORK" }],
-      urls: [{ url: "https://nanasbeautybar.site.agendapro.com/co", type: "WORK" }]
-    };
-    await whatsappService.sendContactMessage(to, contact);
+    const followUp = "¿Deseas hacer otra consulta o agendar tu cita? 😊";
+    const buttons = [
+      { type: 'reply', reply: { id: 'option_1', title: 'Agendar' } },
+      { type: 'reply', reply: { id: 'option_2', title: 'Consultar' } }
+    ];
+
+    await whatsappService.sendMessage(to, response);
+    await whatsappService.sendInteractiveButtons(to, followUp, buttons);
   }
 
   async sendLocation(to) {
@@ -196,6 +197,12 @@ Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu ci
     await whatsappService.sendLocationMessage(to, latitude, longitude, name, address);
   }
 
+  async sendMedia(to) {
+    const mediaUrl = 'https://s3.amazonaws.com/gndx.dev/medpet-file.pdf';
+    const caption = '¡Esto es un PDF!';
+    const type = 'document';
+    await whatsappService.sendMediaMessage(to, type, mediaUrl, caption);
+  }
 }
 
 export default new MessageHandler();
