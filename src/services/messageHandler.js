@@ -219,15 +219,15 @@ class MessageHandler {
     const response = await openAiService(prompt);
     delete this.assistantState[to];
   
-    const followUp = "¿Deseas hacer otra consulta o agendar tu cita? 😊";
+    const followUp = "¿Hay algo más en lo que pueda ayudarte? 😊";
     const buttons = [
-      { type: 'reply', reply: { id: 'option_1', title: 'Agendar' } },
-      { type: 'reply', reply: { id: 'option_2', title: 'Consultar' } }
+      { type: 'reply', reply: { id: 'option_2', title: 'Consultar otra cosa' } },
+      { type: 'reply', reply: { id: 'option_3', title: 'Ver ubicación' } }
     ];
   
     await whatsappService.sendMessage(to, response);
     await whatsappService.sendInteractiveButtons(to, followUp, buttons);
-  }  
+  }      
 
   async sendLocation(to) {
     const latitude = 6.176034669023148;
