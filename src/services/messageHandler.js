@@ -116,23 +116,38 @@ class MessageHandler {
     switch (state.step) {
       case 'name':
         state.name = message;
-        state.step = 'petName';
-        response = "Gracias. ¿Cuál es el nombre de tu Mascota?";
+        state.step = 'email';
+        response = "✨ Gracias. ¿Cuál es tu correo electrónico?";
         break;
-      case 'petName':
-        state.petName = message;
-        state.step = 'petType';
-        response = '¿Qué tipo de mascota es? (Ej: perro, gato, hurón...)';
+      case 'email':
+        state.email = message;
+        state.step = 'technique';
+        response = "💅 Genial. ¿Qué técnica deseas realizarte? (Ej: semipermanente, press on, polygel, etc.)";
         break;
-      case 'petType':
-        state.petType = message;
-        state.step = 'reason';
-        response = '¿Cuál es el motivo de la Consulta?';
+      case 'technique':
+        state.technique = message;
+        state.step = 'wantsPedicure';
+        response = "🦶¿Deseas realizarte también pedicure? Nuestro servicio es en barra, donde realizamos ambos servicios al tiempo. Responde *sí* o *no*.";
         break;
-      case 'reason':
-        state.reason = message;
+      case 'wantsPedicure':
+        state.wantsPedicure = message.toLowerCase();
+        if (state.wantsPedicure === 'sí' || state.wantsPedicure === 'si') {
+          state.step = 'pedicureType';
+          response = "✨ Perfecto. ¿Deseas pedicure con maquillaje *tradicional* o *semipermanente*?";
+        } else {
+          state.step = 'appointmentDate';
+          response = "📆 ¿Para qué día y hora deseas tu cita?";
+        }
+        break;
+      case 'pedicureType':
+        state.pedicureType = message;
+        state.step = 'appointmentDate';
+        response = "📆 ¿Para qué día y hora deseas tu cita?";
+        break;
+      case 'appointmentDate':
+        state.appointmentDate = message;
         state.step = 'professional';
-        response = "¿Con quién deseas agendar? Puedes escribir el nombre de la profesional o decir 'cualquiera'. También contamos con servicios de podología: $45.000 (podología sencilla) y $80.000 (uñas encarnadas). ¿Cuál prefieres?";
+        response = "👩‍🦰 ¿Con quién deseas agendar? Puedes escribir el nombre de la profesional o decir 'cualquiera'.";
         break;
       case 'professional':
         state.professional = message;
@@ -141,28 +156,29 @@ class MessageHandler {
     }
   
     await whatsappService.sendMessage(to, response);
-  }  
+  }   
 
   completeAppointment(to) {
-    const appointment = this.appointmentState[to];
+    const a = this.appointmentState[to];
     delete this.appointmentState[to];
   
     const resumen = `
-  ✅ *Resumen de tu cita:*
+  ✅ *Resumen de tu cita en Nana's Beauty Bar Spa de Uñas:*
   
   📱 Teléfono: ${to}
-  👤 Nombre: ${appointment.name}
-  🐾 Mascota: ${appointment.petName}
-  🐶 Tipo: ${appointment.petType}
-  📝 Servicio: ${appointment.reason}
-  👩‍🦰 Profesional: ${appointment.professional}
-  🕒 Fecha: ${new Date().toLocaleString('es-CO')}
+  👤 Nombre: ${a.name}
+  📧 Correo: ${a.email}
+  💅 Técnica: ${a.technique}
+  🦶 Pedicure: ${a.wantsPedicure === 'sí' || a.wantsPedicure === 'si' ? `Sí (${a.pedicureType})` : 'No'}
+  📆 Fecha y hora deseada: ${a.appointmentDate}
+  👩‍🦰 Profesional: ${a.professional}
+  🕒 Fecha de registro: ${new Date().toLocaleString('es-CO')}
   `;
   
     return `Gracias por agendar tu cita. ${resumen}
   
-  Nos pondremos en contacto contigo pronto para confirmar la disponibilidad de la profesional y la hora de tu cita. ✨`;
-  }  
+  Nos pondremos en contacto contigo pronto para confirmar la disponibilidad y asignarte la hora. 💖`;
+  }   
 
   async handleAssistantFlow(to, message) {
     const state = this.assistantState[to];
