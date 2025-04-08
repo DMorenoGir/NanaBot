@@ -5,7 +5,23 @@ class MessageHandler {
   constructor() {
     this.appointmentState = {};
     this.assistantState = {};
+    this.userUsage = {}; // Registro de uso diario de ChatGPT por usuario
   }
+
+  checkUsageLimit(userId) {
+    const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  
+    if (!this.userUsage[userId] || this.userUsage[userId].date !== today) {
+      this.userUsage[userId] = { count: 0, date: today };
+    }
+  
+    if (this.userUsage[userId].count >= 3) { // Límite de 3 consultas al día
+      return false;
+    }
+  
+    this.userUsage[userId].count += 1;
+    return true;
+  }  
 
   async handleIncomingMessage(message, senderInfo) {
     if (message?.type === 'text') {
@@ -86,7 +102,7 @@ class MessageHandler {
         break;
       case 'option_4':
         this.assistantState[to] = { step: 'recommendation' };
-        response = "Cuéntame brevemente cómo están tus uñas actualmente (quebradizas, con hongos, débiles, cortas, etc.), para darte la mejor recomendación 💅✨.";
+        response = "Cuéntame brevemente cómo están tus uñas actualmente (quebradizas, débiles, cortas, etc.), para darte la mejor recomendación 💅✨.";
         break;
       case 'option_5':
         this.assistantState[to] = { step: 'advice' };
@@ -182,28 +198,36 @@ class MessageHandler {
 
   async handleAssistantFlow(to, message) {
     const state = this.assistantState[to];
+  
+    // Validación del límite diario
+    const allowed = this.checkUsageLimit(to);
+    if (!allowed) {
+      const limitMsg = "🚫 Has alcanzado el límite de consultas con nuestra asesora virtual por hoy. Inténtalo mañana o agenda tu cita directamente. 💖";
+      await whatsappService.sendMessage(to, limitMsg);
+      return;
+    }
+  
     let prompt;
-
     if (state.step === 'recommendation') {
-      prompt = `Soy una experta en cuidado de uñas. Con base en el estado que menciona el cliente, recomienda solo una o dos técnicas adecuadas de nuestro spa para fortalecer o mejorar sus uñas. Mensaje del cliente: "${message}"`;
+      prompt = `Soy una experta en cuidado de uñas. Con base en el estado que menciona el cliente, se breve con las recomendaciones y adopta una personalidad para que parezca una conversación natural. Mensaje del cliente: "${message}"`;
     } else if (state.step === 'advice') {
       prompt = `Soy asesora en tendencias de uñas. Recomienda colores o diseños actuales basados en la consulta del cliente: "${message}"`;
     } else if (state.step === 'services') {
       prompt = `Responde con información sobre los servicios del spa relacionados a: "${message}". Incluye precios si aplica.`;
     }
-
+  
     const response = await openAiService(prompt);
     delete this.assistantState[to];
-
+  
     const followUp = "¿Deseas hacer otra consulta o agendar tu cita? 😊";
     const buttons = [
       { type: 'reply', reply: { id: 'option_1', title: 'Agendar' } },
       { type: 'reply', reply: { id: 'option_2', title: 'Consultar' } }
     ];
-
+  
     await whatsappService.sendMessage(to, response);
     await whatsappService.sendInteractiveButtons(to, followUp, buttons);
-  }
+  }  
 
   async sendLocation(to) {
     const latitude = 6.176034669023148;
