@@ -50,7 +50,7 @@ class MessageHandler {
   isGreeting(message) {
     const greetings = [
       "hola", "hello", "hi", "buenas", "buenos días", "buenas tardes", "buenas noches",
-      "buen día", "holi", "qué más", "saludos"
+      "buen día", "holi", "qué más", "saludos", "info", "informacion", "información", "más información", "mas informacion"
     ];
     return greetings.some(greet => message.includes(greet));
   }
