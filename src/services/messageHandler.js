@@ -88,27 +88,51 @@ class MessageHandler {
 
   async handleMenuOption(to, option) {
     let response;
+  
     switch (option) {
-      case 'option_1':
+      case 'option_1': // Agendar cita
+        const agendarOpciones = "¿Cómo deseas agendar tu cita?";
+        const botonesAgendar = [
+          { type: 'reply', reply: { id: 'agendar_contacto', title: '📲 Deseo ser contactado' } },
+          { type: 'reply', reply: { id: 'agendar_video', title: '🎥 Ver video guía' } },
+          { type: 'reply', reply: { id: 'agendar_link', title: '📅 Agendar yo mismo' } },
+        ];
+        await whatsappService.sendInteractiveButtons(to, agendarOpciones, botonesAgendar);
+        return;
+  
+      case 'agendar_contacto':
         this.appointmentState[to] = { step: 'name' };
         response = "Perfecto 💕 Empecemos tu agendamiento. ¿Cuál es tu nombre completo?";
         break;
-      case 'option_2':
+  
+      case 'agendar_video':
+        response = "🎥 Aquí tienes un video donde explicamos cómo agendar tu cita paso a paso:\n👉 [aquí va el link del video]";
+        break;
+  
+      case 'agendar_link':
+        response = "Puedes agendar directamente desde nuestro sitio oficial:\n👉 https://nanasbeautybar.site.agendapro.com/co/sucursal/76227";
+        break;
+  
+      case 'option_2': // Consultar
         await this.sendConsultationMenu(to);
         return;
-      case 'option_3':
+  
+      case 'option_3': // Ubicación
         response = 'Nuestra ubicación es la siguiente:';
         await this.sendLocation(to);
         break;
-      case 'option_4':
+  
+      case 'option_4': // Recomendación
         this.assistantState[to] = { step: 'recommendation' };
         response = "Cuéntame brevemente cómo están tus uñas actualmente (quebradizas, débiles, cortas, etc.), para darte la mejor recomendación 💅✨.";
         break;
-      case 'option_5':
+  
+      case 'option_5': // Asesoría
         this.assistantState[to] = { step: 'advice' };
         response = "¿Te gustaría ideas sobre colores, diseños o tendencias actuales? 🎨✨ Cuéntame qué estás buscando.";
         break;
-      case 'option_6':
+  
+      case 'option_6': // Servicios
         this.assistantState[to] = { step: 'services' };
         response = "Aquí tienes algunos de nuestros servicios destacados con precios:\n\n" +
           "💅 *Esmaltado Tradicional*: $25.000 (manicure o pedicure) / $44.000 ambos.\n" +
@@ -119,11 +143,14 @@ class MessageHandler {
           "🦶 *PEDILUXE*: Ritual completo para relajar y consentir tus pies 💆‍♀️\n\n" +
           "Si quieres más detalles, ¡pregúntame sin pena! 💖";
         break;
+  
       default:
         response = "Lo siento 😅 no entendí tu selección. Por favor, elige una opción del menú.";
     }
+  
     await whatsappService.sendMessage(to, response);
   }
+  
 
   async handleAppointmentFlow(to, message) {
     const state = this.appointmentState[to];
@@ -204,8 +231,9 @@ class MessageHandler {
     if (!allowed) {
       const limitMsg = "🚫 Has alcanzado el límite de consultas con nuestra asesora virtual por hoy. Inténtalo mañana o agenda tu cita directamente. 💖";
       await whatsappService.sendMessage(to, limitMsg);
+      await this.sendWelcomeMenu(to); // Agrega nuevamente los botones de Agendar y Ubicación
       return;
-    }
+    }    
   
     let prompt;
     if (state.step === 'recommendation') {
