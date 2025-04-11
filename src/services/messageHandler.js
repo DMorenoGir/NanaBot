@@ -93,10 +93,11 @@ class MessageHandler {
       case 'option_1': // Agendar cita
         const agendarOpciones = "¿Cómo deseas agendar tu cita?";
         const botonesAgendar = [
-          { type: 'reply', reply: { id: 'agendar_contacto', title: '📲 Deseo ser contactado' } },
-          { type: 'reply', reply: { id: 'agendar_video', title: '🎥 Ver video guía' } },
-          { type: 'reply', reply: { id: 'agendar_link', title: '📅 Agendar yo mismo' } },
+          { type: 'reply', reply: { id: 'agendar_contacto', title: '📲 Ser contactado' } },
+          { type: 'reply', reply: { id: 'agendar_video', title: '🎥 Ver video' } },
+          { type: 'reply', reply: { id: 'agendar_link', title: '📅 AgendaPro' } },
         ];
+                
         await whatsappService.sendInteractiveButtons(to, agendarOpciones, botonesAgendar);
         return;
   
